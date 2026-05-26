@@ -5,7 +5,7 @@
 ///
 /// The public API is plain Dart: create a `Mediquo` and call its
 /// `Future`-returning methods. The package holds no observable state and
-/// imposes no state-management library — drive it from `setState`,
+/// imposes no state-management library: drive it from `setState`,
 /// `ChangeNotifier`, Riverpod, Bloc or anything else. Failures are thrown as
 /// `MediquoException`s.
 ///

@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.3
+
+### Changed
+
+- Polished dartdoc copy in the `Mediquo` class and library-level docs
+  (tightened wording and removed stray typography). Docs only; no API changes.
+
 ## 1.0.2
 
 ### Added

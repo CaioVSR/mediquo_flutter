@@ -8,8 +8,7 @@ import 'package:mediquo_flutter/src/platform/mediquo_flutter_platform.dart';
 /// succeeds and throws a `MediquoException` when it fails. The package holds
 /// no observable state and imposes no state-management library: create a
 /// `Mediquo`, keep it wherever your app keeps dependencies, and reflect the
-/// results of these calls in whatever state solution you already use
-/// (`setState`, `ChangeNotifier`, Riverpod, Bloc, …).
+/// results in whatever state solution you already use.
 ///
 /// ```dart
 /// final mediquo = Mediquo();
