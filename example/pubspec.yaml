@@ -1,0 +1,25 @@
+name: mediquo_flutter_example
+description: Demonstrates the mediquo_flutter plugin with flutter_bloc.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  firebase_core: ^4.9.0
+  firebase_messaging: ^16.2.0
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.0
+  mediquo_flutter:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.0.0
+
+flutter:
+  uses-material-design: true

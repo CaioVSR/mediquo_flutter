@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & test (Dart)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --coverage
+
+  example-android-build:
+    name: Build example APK (native + consumer setup + R8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+      - name: Resolve example dependencies
+        run: flutter pub get
+        working-directory: example
+      - name: Build release APK (R8 / consumer ProGuard rules)
+        # Release build runs R8 (minifyEnabled), so it compiles the native Kotlin
+        # against the real MediQuo SDK (public JFrog repo) AND exercises the
+        # plugin's bundled consumer ProGuard rules — catching missing-class
+        # regressions and validating the documented consumer setup on every change.
+        run: flutter build apk --release
+        working-directory: example
+
+  example-ios-build-cocoapods:
+    name: Build example app (iOS, CocoaPods)
+    # Requires a runner with Xcode 26 (the MediQuo iOS SDK's minimum).
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+      - name: Disable Swift Package Manager
+        # Force the CocoaPods integration so the podspec path is exercised: the
+        # prepare_command fetches and vendors the MediQuo XCFramework. This is
+        # the path apps that stay on CocoaPods (e.g. a OneSignal NSE) rely on.
+        run: flutter config --no-enable-swift-package-manager
+      - name: Resolve example dependencies
+        run: flutter pub get
+        working-directory: example
+      - name: Build (CocoaPods)
+        # Compiles the native Swift against the real MediQuoSDK vendored by the
+        # podspec, validating the CocoaPods path on every change.
+        run: flutter build ios --no-codesign --debug
+        working-directory: example
+
+  example-ios-build-spm:
+    name: Build example app (iOS, SPM)
+    # Requires a runner with Xcode 26 (the MediQuo iOS SDK's minimum).
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
+      - name: Resolve example dependencies
+        run: flutter pub get
+        working-directory: example
+      - name: Build for simulator
+        # Compiles the native Swift against the real MediQuoSDK (SPM) so iOS
+        # regressions are caught on every change. No code signing for simulator.
+        run: flutter build ios --debug --simulator
+        working-directory: example

@@ -1,0 +1,14 @@
+-keep class com.opentok.** { *; }
+-keep class org.webrtc.** { *; }
+-keep class com.mediquo.ophiuchus.videocall.** { *; }
+-keep class org.otwebrtc.** { *; }
+-dontwarn com.opentok.**
+-dontwarn org.webrtc.**
+-dontwarn com.mediquo.ophiuchus.videocall.**
+-dontwarn com.google.api.client.**
+-dontwarn org.joda.time.Instant
+-dontwarn com.google.mediapipe.**
+-dontwarn com.google.protobuf.**
+-dontwarn io.grpc.**
+-dontwarn com.fasterxml.jackson.databind.**
+-dontwarn org.osgi.annotation.bundle.**

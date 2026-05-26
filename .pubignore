@@ -1,0 +1,14 @@
+docs/
+doc/
+coverage/
+build/
+.dart_tool/
+.idea/
+*.iml
+.metadata
+.flutter-plugins-dependencies
+
+# MediQuo iOS SDK XCFramework — fetched at the consumer's pod install by the
+# podspec prepare_command; must never ship in the published archive.
+MediQuoSDK.xcframework/
+MediQuoSDK.xcframework.zip
