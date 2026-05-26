@@ -3,7 +3,7 @@ description: >-
   A federated Flutter plugin for the MediQuo telemedicine SDK. Bridges the native
   Android and iOS SDKs (chat, video calls, professional list) with a plain-Dart
   API.
-version: 1.0.1
+version: 1.0.2
 repository: https://github.com/CaioVSR/mediquo_flutter
 issue_tracker: https://github.com/CaioVSR/mediquo_flutter/issues
 topics:

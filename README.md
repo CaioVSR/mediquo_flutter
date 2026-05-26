@@ -1,13 +1,15 @@
 # mediquo_flutter
 
+[![Buy Me a Coffee](https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-support_this_package-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/caiovsr)
+
 A federated Flutter plugin that integrates the **native** [MediQuo](https://mediquo.com)
-telemedicine SDKs — chat, video calls and the professional list — through a
+telemedicine SDKs (chat, video calls and the professional list) through a
 clean, plain-Dart API.
 
-## 🤖 TL;DR — let the AI handle it
+## 🤖 TL;DR: let the AI handle it
 
 **Life's too short to read SDK docs.** Paste this into your favorite AI assistant and let it wire MediQuo into your app while you grab a
-coffee ☕:
+coffee ☕. [Make it two? Mine's an espresso.](https://buymeacoffee.com/caiovsr)
 
 ```text
 Integrate the `mediquo_flutter` Flutter package into my project.
@@ -27,7 +29,7 @@ It fetches the full guide ([`AI_INTEGRATION.md`](AI_INTEGRATION.md)), asks for y
 hand? Everything's below. 👇
 
 - 🩺 Native Android & iOS MediQuo SDKs (native UI, native video stack).
-- 🍎 iOS integrates via **CocoaPods or Swift Package Manager** — no Flutter SPM required.
+- 🍎 iOS integrates via **CocoaPods or Swift Package Manager** (no Flutter SPM required).
 - 🧩 Type-safe platform channel generated with [Pigeon](https://pub.dev/packages/pigeon).
 - 🟦 Plain-Dart API (`Future`s).
 - 🧪 100% unit-test coverage of the Dart layer.
@@ -39,7 +41,7 @@ hand? Everything's below. 👇
 ## Quick start
 
 1. Get an `apiKey` (partner key) and a `clientCode` (patient CPF, digits only)
-   from your backend — the app makes no MediQuo network calls.
+   from your backend. The app makes no MediQuo network calls.
 2. Add the dependency (see [Installation](#installation)) and do the per-platform
    [native setup](#platform-setup).
 3. Drive everything through a `Mediquo` instance:
@@ -54,7 +56,7 @@ await mediquo.openProfessionalList();
 ```
 
 Every method returns a `Future` and throws a `MediquoException` on failure.
-The package holds no state — the native SDK owns every screen and session.
+The package holds no state: the native SDK owns every screen and session.
 
 ## How authentication works
 
@@ -64,11 +66,11 @@ a **backend** responsibility:
 1. Your backend creates the patient through the MediQuo Patients API and keeps
    the patient's `documentNumber` (a CPF).
 2. Your app receives two values from your backend:
-   - `apiKey` — the partner API key.
-   - `clientCode` — the patient `documentNumber` (CPF, digits only).
+   - `apiKey`: the partner API key.
+   - `clientCode`: the patient `documentNumber` (CPF, digits only).
 3. The plugin initialises and authenticates the native SDK with those values.
 
-The native SDKs authenticate by **CLIENT_CODE (CPF)** — not by the web widget's
+The native SDKs authenticate by **CLIENT_CODE (CPF)**, not by the web widget's
 JWT access token.
 
 ## Installation
@@ -104,7 +106,7 @@ self-contained AAR. Modern Flutter projects resolve repositories centrally
 
 1. **Add the MediQuo Maven repository** to `android/settings.gradle`, inside
    `dependencyResolutionManagement.repositories`. This is the normal path, not an
-   exception. You add only the *repository* — the `com.mediquo:mediquo-sdk`
+   exception. You add only the *repository*. The `com.mediquo:mediquo-sdk`
    dependency itself is declared by this plugin.
 
    ```gradle
@@ -119,7 +121,7 @@ self-contained AAR. Modern Flutter projects resolve repositories centrally
    }
    ```
 
-2. **SDK version** — the plugin pins `com.mediquo:mediquo-sdk` to `3.8.1` by
+2. **SDK version.** The plugin pins `com.mediquo:mediquo-sdk` to `3.8.1` by
    default. Override it only to use a different version published by MediQuo:
 
    ```properties
@@ -127,7 +129,7 @@ self-contained AAR. Modern Flutter projects resolve repositories centrally
    mediquo.sdkVersion=3.8.1
    ```
 
-3. **Toolchain** — the SDK is compiled with Kotlin 2.2, so that is the only hard
+3. **Toolchain.** The SDK is compiled with Kotlin 2.2, so that is the only hard
    plugin requirement:
 
    | Tool | Version |
@@ -143,36 +145,36 @@ self-contained AAR. Modern Flutter projects resolve repositories centrally
    in an app that has no Compose code fails with
    `IncompatibleComposeRuntimeVersionException`.)
 
-4. **Permissions** — add `CAMERA` and `RECORD_AUDIO` (video calls) and, for push,
+4. **Permissions.** Add `CAMERA` and `RECORD_AUDIO` (video calls) and, for push,
    `POST_NOTIFICATIONS` (Android 13+) to your `AndroidManifest.xml`. The
    [MediQuo Android SDK docs](https://documentacao.mediquo.com.br/sdk-android.html)
    cover the attachment `FileProvider` and the colour/font customisation keys.
 
-   R8/ProGuard rules for the MediQuo SDK's transitive dependencies — the
-   OpenTok/WebRTC video stack plus MediaPipe, Protobuf, gRPC, Jackson and OSGi —
+   R8/ProGuard rules for the MediQuo SDK's transitive dependencies (the
+   OpenTok/WebRTC video stack plus MediaPipe, Protobuf, gRPC, Jackson and OSGi)
    are **bundled** with the plugin (`android/consumer-rules.pro`) and applied
    automatically via `consumerProguardFiles`, so a `minifyEnabled` release build
    needs no MediQuo-specific ProGuard setup. (As with any minified Flutter app you
    may still need Flutter's own `-dontwarn com.google.android.play.core.**` for
-   deferred components — a Flutter concern, not a MediQuo one.)
+   deferred components, a Flutter concern, not a MediQuo one.)
 
-> Verified at **build** time against `com.mediquo:mediquo-sdk:3.8.1` — a real
+> Verified at **build** time against `com.mediquo:mediquo-sdk:3.8.1`: a real
 > consumer app compiles with only the above (no Compose/Hilt/KSP plugins) and a
 > **release** build (R8 / `minifyEnabled`) succeeds with the bundled rules.
 > Confirm the SDK UI launches at runtime. If a future SDK build ever reports a
 > Hilt/Dagger error, apply the Hilt + KSP plugins and make your `Application`
-> `@HiltAndroidApp` — not needed today.
+> `@HiltAndroidApp`. Not needed today.
 
 ### iOS
 
 The MediQuo iOS SDK (`MediQuoSDK` 26.1.2) ships only as a binary XCFramework. The
 plugin bundles it for **both** dependency managers, so you never add the SDK
-yourself — use whichever your app already uses:
+yourself. Use whichever your app already uses:
 
 - **CocoaPods (default).** No extra setup: the plugin's podspec fetches the
   MediQuo XCFramework (checksum-pinned to `26.1.2`) at `pod install` and vendors
   it. Keep Flutter SPM **disabled**. This is the right path when your app relies
-  on CocoaPods — for example a OneSignal Notification Service Extension — where
+  on CocoaPods (for example a OneSignal Notification Service Extension), where
   enabling Flutter SPM can clash with prebuilt dynamic frameworks.
 - **Swift Package Manager.** If you prefer SPM, enable it
   (`flutter config --enable-swift-package-manager`) and the plugin's
@@ -218,13 +220,13 @@ A complete, runnable sample driven by `setState` lives in [`example/`](example/)
 ## Push notifications
 
 This package **does not fetch** push tokens and depends on **no** Firebase
-package — it only forwards a token you already have to the native SDK. Acquiring
+package. It only forwards a token you already have to the native SDK. Acquiring
 the token is the app's job (typically with
 [`firebase_messaging`](https://pub.dev/packages/firebase_messaging)).
 
 End-to-end flow:
 
-1. Your app obtains a token — FCM on Android; FCM or a raw APNs device token on
+1. Your app obtains a token: FCM on Android; FCM or a raw APNs device token on
    iOS.
 2. Your app calls `mediquo.registerPushToken(token)` once the patient is
    authenticated.
@@ -234,9 +236,9 @@ End-to-end flow:
    delegate plus `getSDKViewController(forRemotePush:)`).
 
 > **Who provides what.** The per-device token is obtained and registered by your
-> **app** (the backend can't — only the device can mint it). The Firebase
+> **app** (the backend can't; only the device can mint it). The Firebase
 > **server credential** (a service account) that authorises MediQuo's backend to
-> *send* pushes is given to MediQuo **out-of-band via their portal** — it is
+> *send* pushes is given to MediQuo **out-of-band via their portal**. It is
 > never handled by this package and must never be embedded in the app.
 
 ```dart
@@ -314,7 +316,7 @@ MediQuo SDK API.
 ## Documentation
 
 API documentation is generated by `dart doc` and published on
-[pub.dev](https://pub.dev/documentation/mediquo_flutter/latest/) — start from the
+[pub.dev](https://pub.dev/documentation/mediquo_flutter/latest/). Start from the
 `Mediquo` class.
 
 ## License
