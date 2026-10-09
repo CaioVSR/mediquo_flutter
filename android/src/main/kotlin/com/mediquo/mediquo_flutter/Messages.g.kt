@@ -90,6 +90,13 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
  * Generated interface from Pigeon that represents a handler of messages from Flutter.
  */
 interface MediquoHostApi {
+  /**
+   * Whether the native SDK can run on this device.
+   *
+   * Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+   * for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices.
+   */
+  fun isSupported(): Boolean
   /** Initialises the native MediQuo SDK with the partner [apiKey]. */
   fun initialize(apiKey: String, callback: (Result<Unit>) -> Unit)
   /** Authenticates the pre-registered patient identified by [clientCode] (CPF). */
@@ -105,9 +112,9 @@ interface MediquoHostApi {
    *
    * [payload] is the notification data (for example
    * `RemoteMessage.data`). On iOS this routes to the deep-linked screen via
-   * `getSDKViewController(forRemotePush:)`; on Android, where the bundled
-   * messaging service already deep-links taps, it falls back to the
-   * professional list.
+   * `getSDKViewController(forRemotePush:)`; on Android a `room_id` opens that
+   * chat, `call_*` keys open the call screen and anything else falls back to
+   * the professional list.
    */
   fun openFromRemoteNotification(payload: Map<String, Any?>, callback: (Result<Unit>) -> Unit)
 
@@ -120,6 +127,21 @@ interface MediquoHostApi {
     @JvmOverloads
     fun setUp(binaryMessenger: BinaryMessenger, api: MediquoHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.isSupported$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.isSupported())
+            } catch (exception: Throwable) {
+              MessagesPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
       run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.initialize$separatedMessageChannelSuffix", codec)
         if (api != null) {

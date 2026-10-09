@@ -25,6 +25,12 @@ enum PushTokenType {
 /// Host (native) API invoked from Dart.
 @HostApi()
 abstract class MediquoHostApi {
+  /// Whether the native SDK can run on this device.
+  ///
+  /// Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+  /// for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices.
+  bool isSupported();
+
   /// Initialises the native MediQuo SDK with the partner [apiKey].
   @async
   void initialize(String apiKey);
@@ -49,9 +55,9 @@ abstract class MediquoHostApi {
   ///
   /// [payload] is the notification data (for example
   /// `RemoteMessage.data`). On iOS this routes to the deep-linked screen via
-  /// `getSDKViewController(forRemotePush:)`; on Android, where the bundled
-  /// messaging service already deep-links taps, it falls back to the
-  /// professional list.
+  /// `getSDKViewController(forRemotePush:)`; on Android a `room_id` opens that
+  /// chat, `call_*` keys open the call screen and anything else falls back to
+  /// the professional list.
   @async
   void openFromRemoteNotification(Map<String, Object?> payload);
 }

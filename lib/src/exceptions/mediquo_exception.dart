@@ -46,6 +46,10 @@ sealed class MediquoException implements Exception {
         message: message,
         cause: exception,
       ),
+      MediquoErrorCode.unsupportedDevice => MediquoUnsupportedDeviceException(
+        message: message,
+        cause: exception,
+      ),
       _ => MediquoPlatformException(
         message: message,
         code: exception.code,
@@ -119,6 +123,19 @@ final class MediquoNotInitializedException extends MediquoException {
   /// Creates a [MediquoNotInitializedException].
   const MediquoNotInitializedException({
     String message = 'The MediQuo SDK is not ready for this operation yet.',
+    Object? cause,
+  }) : super(message, cause: cause);
+}
+
+/// Thrown when the device cannot run the native SDK.
+///
+/// On Android the MediQuo SDK ships native libraries for `arm64-v8a` only, so
+/// every call fails with this exception on 32-bit and x86 devices. Check
+/// `Mediquo.isSupported` before offering the feature.
+final class MediquoUnsupportedDeviceException extends MediquoException {
+  /// Creates a [MediquoUnsupportedDeviceException].
+  const MediquoUnsupportedDeviceException({
+    String message = 'This device cannot run the MediQuo SDK.',
     Object? cause,
   }) : super(message, cause: cause);
 }

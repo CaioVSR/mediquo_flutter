@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Roots the MediQuo SDK passes to FileProvider.getUriForFile: camera
+     captures and shared or uploaded attachments under cacheDir, and downloaded
+     PDFs under getExternalFilesDir(DIRECTORY_DOWNLOADS). -->
+<paths>
+    <cache-path name="mediquo_cache" path="." />
+    <external-files-path name="mediquo_downloads" path="Download" />
+</paths>

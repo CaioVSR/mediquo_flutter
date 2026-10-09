@@ -33,6 +33,11 @@ abstract class MediquoFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  /// Whether the native SDK can run on this device.
+  Future<bool> isSupported() {
+    throw UnimplementedError('isSupported() has not been implemented.');
+  }
+
   /// Initialises the native SDK with the partner [apiKey].
   Future<void> initialize(String apiKey) {
     throw UnimplementedError('initialize() has not been implemented.');

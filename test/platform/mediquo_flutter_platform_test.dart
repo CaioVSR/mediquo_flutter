@@ -36,6 +36,13 @@ void main() {
     group('default methods throw UnimplementedError', () {
       final platform = _BarePlatform();
 
+      test('isSupported', () {
+        expect(
+          platform.isSupported,
+          throwsA(isA<UnimplementedError>()),
+        );
+      });
+
       test('initialize', () {
         expect(
           () => platform.initialize('k'),

@@ -88,6 +88,29 @@ class MediquoHostApi {
 
   final String pigeonVar_messageChannelSuffix;
 
+  /// Whether the native SDK can run on this device.
+  ///
+  /// Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+  /// for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices.
+  Future<bool> isSupported() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.isSupported$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
   /// Initialises the native MediQuo SDK with the partner [apiKey].
   Future<void> initialize(String apiKey) async {
     final pigeonVar_channelName =
@@ -193,9 +216,9 @@ class MediquoHostApi {
   ///
   /// [payload] is the notification data (for example
   /// `RemoteMessage.data`). On iOS this routes to the deep-linked screen via
-  /// `getSDKViewController(forRemotePush:)`; on Android, where the bundled
-  /// messaging service already deep-links taps, it falls back to the
-  /// professional list.
+  /// `getSDKViewController(forRemotePush:)`; on Android a `room_id` opens that
+  /// chat, `call_*` keys open the call screen and anything else falls back to
+  /// the professional list.
   Future<void> openFromRemoteNotification(Map<String, Object?> payload) async {
     final pigeonVar_channelName =
         'dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.openFromRemoteNotification$pigeonVar_messageChannelSuffix';

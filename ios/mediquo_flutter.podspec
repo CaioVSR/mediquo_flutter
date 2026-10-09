@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'mediquo_flutter'
-  s.version          = '1.0.0'
+  s.version          = '2.0.0'
   s.summary          = 'Flutter plugin bridging the native MediQuo iOS SDK.'
   s.description      = <<-DESC
 A federated Flutter plugin that bridges the native MediQuo iOS SDK

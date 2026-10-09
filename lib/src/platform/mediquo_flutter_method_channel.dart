@@ -20,6 +20,9 @@ class MediquoFlutterMethodChannel extends MediquoFlutterPlatform {
   final MediquoHostApi _hostApi;
 
   @override
+  Future<bool> isSupported() => _guard(_hostApi.isSupported);
+
+  @override
   Future<void> initialize(String apiKey) =>
       _guard(() => _hostApi.initialize(apiKey));
 
@@ -42,9 +45,9 @@ class MediquoFlutterMethodChannel extends MediquoFlutterPlatform {
   Future<void> openFromRemoteNotification(Map<String, Object?> payload) =>
       _guard(() => _hostApi.openFromRemoteNotification(payload));
 
-  Future<void> _guard(Future<void> Function() action) async {
+  Future<T> _guard<T>(Future<T> Function() action) async {
     try {
-      await action();
+      return await action();
     } on PlatformException catch (exception) {
       throw MediquoException.fromPlatformException(exception);
     }

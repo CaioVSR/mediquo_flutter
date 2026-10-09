@@ -37,7 +37,7 @@ backend at runtime.
 
 ```yaml
 dependencies:
-  mediquo_flutter: ^1.0.0
+  mediquo_flutter: ^2.0.0
 ```
 
 Native setup is required and is the host app's responsibility (summarised at the
@@ -62,10 +62,12 @@ MediquoConfiguration({required String apiKey, required String clientCode});
 
 ### Methods
 
-Every method returns `Future<void>` and throws a `MediquoException` on failure.
+`isSupported()` returns `Future<bool>`. Every other method returns
+`Future<void>` and throws a `MediquoException` on failure.
 
 | Method | Use |
 | --- | --- |
+| `mediquo.isSupported()` | whether this device can run the SDK (always `true` on iOS; Android needs `arm64-v8a`) |
 | `mediquo.initialize(String apiKey)` | initialise the SDK |
 | `mediquo.authenticate(String clientCode)` | authenticate the patient |
 | `mediquo.startSession(MediquoConfiguration configuration)` | initialise **then** authenticate (preferred) |
@@ -97,17 +99,21 @@ by this package and must never be embedded in the app.
 `MediquoException` (has `message`, `cause`) → `MediquoInitializationException`,
 `MediquoAuthenticationException`, `MediquoOpenException`,
 `MediquoDeauthenticationException`, `MediquoPushRegistrationException`,
-`MediquoNotInitializedException`, `MediquoPlatformException`.
+`MediquoNotInitializedException`, `MediquoUnsupportedDeviceException`,
+`MediquoPlatformException`.
 
 ## Behavioural rules (must respect)
 
+- Check `await mediquo.isSupported()` before offering MediQuo; when it is
+  `false` (32-bit or x86 Android devices), hide the entry point. Every other
+  call on such a device throws `MediquoUnsupportedDeviceException`.
 - Preferred startup: `mediquo.startSession(configuration)` (initialise +
   authenticate in one step; if initialise fails, authenticate is not attempted).
 - Preconditions are enforced by the native SDK and surfaced as exceptions:
-  - `authenticate` / `registerPushToken` before a successful `initialize` →
+  - `authenticate` before a successful `initialize` →
     `MediquoNotInitializedException`.
-  - `openProfessionalList` / `openFromNotification` / `logout` before an
-    authenticated patient → `MediquoNotInitializedException`.
+  - `openProfessionalList` / `openFromNotification` / `registerPushToken` /
+    `logout` before an authenticated patient → `MediquoNotInitializedException`.
 - Wrap every call in `try`/`catch (MediquoException)` and surface `error.message`
   to the user. The package holds no state, so track "busy" / "authenticated"
   yourself (a `bool` with `setState` is enough).
@@ -171,32 +177,48 @@ class _MediquoScreenState extends State<MediquoScreen> {
 
 ## Native setup to remind me about
 
-- **Android** (the MediQuo native SDK is a self-contained AAR; keep the host
-  setup minimal):
-  - Kotlin `org.jetbrains.kotlin.android` `2.2.0` (the SDK is compiled with
-    Kotlin 2.2), JDK 17, `compileSdk` 35+, `minSdk` 29.
-  - Do **NOT** apply Hilt, KSP or the Compose Gradle plugin, and do **NOT** add a
-    Compose BOM. The plugin supplies the Compose BOM via `api platform(...)`.
-    Applying the Compose plugin in an app without Compose code fails with
-    `IncompatibleComposeRuntimeVersionException`.
+- **Android** (MediQuo SDK 26.x, a self-contained AAR):
+  - Toolchain: `compileSdk` **37** (the AAR's `minCompileSdk`; `targetSdk` may
+    stay lower), `minSdk` 29, Kotlin `org.jetbrains.kotlin.android` **2.4.0**,
+    Android Gradle Plugin **9.1.1**, Gradle **9.3.1**, JDK 17. These are the
+    tested versions; do not go lower without telling me.
+  - Do **NOT** apply Hilt, KSP or the Compose Gradle plugin and do **NOT** add a
+    Compose or Firebase BOM for MediQuo: the SDK brings its own.
   - Add the MediQuo Maven repo to `android/settings.gradle` under
     `dependencyResolutionManagement.repositories`:
     `maven { url = uri("https://mediquo.jfrog.io/artifactory/android-sdk") }`
     (a plugin cannot inject it under `FAIL_ON_PROJECT_REPOS`, the modern default).
     Do NOT add the `com.mediquo:mediquo-sdk` dependency — this plugin declares it.
-  - SDK version: the plugin pins `com.mediquo:mediquo-sdk` to `3.8.1`; override
-    via `mediquo.sdkVersion=<version>` in `android/gradle.properties` only if
-    MediQuo provides a different one.
-  - Permissions: `CAMERA`, `RECORD_AUDIO`, and `POST_NOTIFICATIONS` (Android 13+).
-    For push add Firebase (`google-services.json` + Google Services plugin).
-    R8/ProGuard rules for the MediQuo SDK's transitive deps (video stack,
-    MediaPipe, Protobuf, gRPC, Jackson, OSGi) ship with the plugin automatically,
-    so a `minifyEnabled` release build needs no MediQuo ProGuard setup. (A
-    minified app may still need Flutter's own
+  - SDK version: the plugin pins `com.mediquo:mediquo-sdk` to `26.8.1`. Remove
+    any `mediquo.sdkVersion=3.8.1` left in `android/gradle.properties` from 1.x;
+    set `mediquo.sdkVersion` only if MediQuo provides a different 26.x version.
+  - Devices: the SDK ships native code for `arm64-v8a` only (~200 MB
+    uncompressed). Use `isSupported()` at runtime; prefer an App Bundle so
+    devices download only their ABI.
+  - Manifest permissions the app declares: `CAMERA`, `RECORD_AUDIO`,
+    `MODIFY_AUDIO_SETTINGS`, `BLUETOOTH_CONNECT`, plus
+    `<uses-feature android:name="android.hardware.camera" android:required="false" />`.
+    The SDK already declares `INTERNET`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK` and
+    `POST_NOTIFICATIONS`. No storage permission is needed.
+  - Attachments: the plugin declares a `FileProvider`
+    (`com.mediquo.mediquo_flutter.MediquoFlutterFileProvider`) on the authority
+    `${applicationId}`, which is what the SDK uses. Do NOT declare another
+    provider on `${applicationId}` and do NOT add a MediQuo `file_paths.xml`.
+  - Push: the SDK registers `com.mediquo.ui.firebase.MediQuoFirebaseService` for
+    `com.google.firebase.MESSAGING_EVENT`. If the app receives FCM through
+    `firebase_messaging` or OneSignal, remove it in the app manifest
+    (`xmlns:tools` on `<manifest>`, then
+    `<service android:name="com.mediquo.ui.firebase.MediQuoFirebaseService" tools:node="remove" />`
+    inside `<application>`), show MediQuo notifications with the app's own push
+    stack, and forward the tapped message's `data` to
+    `mediquo.openFromNotification(...)`. On Android a `room_id` opens that chat,
+    an incoming-call payload (`type: call_requested`, `call_*` keys) opens the
+    call screen, anything else the professional list. For push also add
+    Firebase (`google-services.json` + Google Services plugin).
+  - R8: the SDK's keep rules ship inside its AAR and the plugin adds the
+    remaining `-dontwarn` rules, so a `minifyEnabled` release build needs no
+    MediQuo ProGuard setup. (A minified app may still need Flutter's own
     `-dontwarn com.google.android.play.core.**` — a Flutter concern, not ours.)
-  - Verified at build time against `mediquo-sdk:3.8.1`. If a future SDK build
-    reports a Hilt/Dagger error, apply Hilt + KSP and make the `Application`
-    `@HiltAndroidApp` — not needed today.
 - **iOS** (Xcode 26): the MediQuo SDK (`MediQuoSDK` 26.1.2) is a binary
   XCFramework and the plugin bundles it for **both** CocoaPods and SPM — do NOT
   add it manually. With CocoaPods (the default) there is no extra step; the

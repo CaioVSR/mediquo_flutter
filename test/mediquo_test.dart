@@ -20,6 +20,13 @@ void main() {
       mediquo = Mediquo(platform: platform);
     });
 
+    test('isSupported returns the platform answer', () async {
+      when(() => platform.isSupported()).thenAnswer((_) async => false);
+
+      expect(await mediquo.isSupported(), isFalse);
+      verify(() => platform.isSupported()).called(1);
+    });
+
     test('initialize delegates to the platform', () async {
       when(() => platform.initialize(any())).thenAnswer((_) async {});
 

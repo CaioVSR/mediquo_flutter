@@ -18,6 +18,13 @@ void main() {
     });
 
     group('delegation', () {
+      test('isSupported returns the host answer', () async {
+        when(() => hostApi.isSupported()).thenAnswer((_) async => true);
+
+        expect(await channel.isSupported(), isTrue);
+        verify(() => hostApi.isSupported()).called(1);
+      });
+
       test('initialize forwards the api key', () async {
         when(() => hostApi.initialize(any())).thenAnswer((_) async {});
 
@@ -97,6 +104,17 @@ void main() {
         await expectLater(
           () => channel.initialize('k'),
           throwsA(isA<MediquoInitializationException>()),
+        );
+      });
+
+      test('maps the unsupported-device code', () async {
+        when(() => hostApi.authenticate(any())).thenThrow(
+          PlatformException(code: MediquoErrorCode.unsupportedDevice),
+        );
+
+        await expectLater(
+          () => channel.authenticate('c'),
+          throwsA(isA<MediquoUnsupportedDeviceException>()),
         );
       });
 

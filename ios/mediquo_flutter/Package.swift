@@ -13,7 +13,7 @@ let package = Package(
     .package(name: "FlutterFramework", path: "../FlutterFramework"),
     .package(
       url: "https://github.com/mediquo/mediquo-ios-sdk.git",
-      from: "26.1.2"
+      exact: "26.1.2"
     )
   ],
   targets: [

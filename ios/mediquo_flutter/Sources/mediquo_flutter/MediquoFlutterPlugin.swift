@@ -16,6 +16,7 @@ public class MediquoFlutterPlugin: NSObject, FlutterPlugin, MediquoHostApi {
     static let deauthenticationFailed = "deauthentication_failed"
     static let pushRegistrationFailed = "push_registration_failed"
     static let notInitialized = "not_initialized"
+    static let unsupportedDevice = "unsupported_device"
   }
 
   private var apiKey: String?
@@ -27,6 +28,10 @@ public class MediquoFlutterPlugin: NSObject, FlutterPlugin, MediquoHostApi {
       binaryMessenger: registrar.messenger(),
       api: plugin
     )
+  }
+
+  func isSupported() throws -> Bool {
+    true
   }
 
   func initialize(

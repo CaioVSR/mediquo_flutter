@@ -23,4 +23,8 @@ abstract final class MediquoErrorCode {
   /// An operation was attempted before the SDK was ready (initialised and,
   /// when required, authenticated).
   static const String notInitialized = 'not_initialized';
+
+  /// The device cannot run the native SDK (on Android, the MediQuo SDK ships
+  /// native libraries for `arm64-v8a` only).
+  static const String unsupportedDevice = 'unsupported_device';
 }

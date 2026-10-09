@@ -43,11 +43,24 @@ class _SessionPageState extends State<SessionPage> {
   final _mediquo = Mediquo();
   final _apiKeyController = TextEditingController();
   final _clientCodeController = TextEditingController();
+  final _roomIdController = TextEditingController();
 
+  bool? _supported;
   bool _busy = false;
   bool _authenticated = false;
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<RemoteMessage>? _notificationTapSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_checkSupport());
+  }
+
+  Future<void> _checkSupport() async {
+    final supported = await _mediquo.isSupported();
+    if (mounted) setState(() => _supported = supported);
+  }
 
   @override
   void dispose() {
@@ -55,6 +68,7 @@ class _SessionPageState extends State<SessionPage> {
     unawaited(_notificationTapSubscription?.cancel());
     _apiKeyController.dispose();
     _clientCodeController.dispose();
+    _roomIdController.dispose();
     super.dispose();
   }
 
@@ -92,6 +106,21 @@ class _SessionPageState extends State<SessionPage> {
   Future<void> _openProfessionalList() async {
     try {
       await _mediquo.openProfessionalList();
+    } on MediquoException catch (error) {
+      _showError(error.message);
+    }
+  }
+
+  /// Opens a chat directly. The SDK routes a `room_id` payload to that chat,
+  /// the same way it handles a tapped chat notification.
+  Future<void> _openChat() async {
+    final roomId = int.tryParse(_roomIdController.text.trim());
+    if (roomId == null) {
+      _showError('Enter a numeric room id.');
+      return;
+    }
+    try {
+      await _mediquo.openFromNotification({'room_id': '$roomId'});
     } on MediquoException catch (error) {
       _showError(error.message);
     }
@@ -135,44 +164,66 @@ class _SessionPageState extends State<SessionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('MediQuo Flutter')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _apiKeyController,
-              decoration: const InputDecoration(labelText: 'API key'),
+        children: [
+          if (_supported == false)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'This device cannot run the MediQuo SDK '
+                  '(Android requires an arm64-v8a device).',
+                ),
+              ),
+            ),
+          TextField(
+            controller: _apiKeyController,
+            decoration: const InputDecoration(labelText: 'API key'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _clientCodeController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Client code (CPF)',
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (_busy)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            FilledButton(
+              onPressed: _startSession,
+              child: const Text('Start session'),
             ),
             const SizedBox(height: 8),
-            TextField(
-              controller: _clientCodeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Client code (CPF)',
-              ),
+            FilledButton.tonal(
+              onPressed: _authenticated ? _openProfessionalList : null,
+              child: const Text('Open professional list'),
             ),
             const SizedBox(height: 24),
-            if (_busy)
-              const Center(child: CircularProgressIndicator())
-            else ...[
-              FilledButton(
-                onPressed: _startSession,
-                child: const Text('Start session'),
+            TextField(
+              controller: _roomIdController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Chat room id (optional)',
+                helperText:
+                    'Send camera, gallery or PDF attachments from the chat.',
               ),
-              const SizedBox(height: 8),
-              FilledButton.tonal(
-                onPressed: _authenticated ? _openProfessionalList : null,
-                child: const Text('Open professional list'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _authenticated ? _logout : null,
-                child: const Text('Log out'),
-              ),
-            ],
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: _authenticated ? _openChat : null,
+              child: const Text('Open chat'),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
+              onPressed: _authenticated ? _logout : null,
+              child: const Text('Log out'),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

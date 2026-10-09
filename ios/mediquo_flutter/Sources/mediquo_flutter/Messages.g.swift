@@ -118,6 +118,11 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol MediquoHostApi {
+  /// Whether the native SDK can run on this device.
+  ///
+  /// Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+  /// for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices.
+  func isSupported() throws -> Bool
   /// Initialises the native MediQuo SDK with the partner [apiKey].
   func initialize(apiKey: String, completion: @escaping (Result<Void, Error>) -> Void)
   /// Authenticates the pre-registered patient identified by [clientCode] (CPF).
@@ -132,9 +137,9 @@ protocol MediquoHostApi {
   ///
   /// [payload] is the notification data (for example
   /// `RemoteMessage.data`). On iOS this routes to the deep-linked screen via
-  /// `getSDKViewController(forRemotePush:)`; on Android, where the bundled
-  /// messaging service already deep-links taps, it falls back to the
-  /// professional list.
+  /// `getSDKViewController(forRemotePush:)`; on Android a `room_id` opens that
+  /// chat, `call_*` keys open the call screen and anything else falls back to
+  /// the professional list.
   func openFromRemoteNotification(payload: [String: Any?], completion: @escaping (Result<Void, Error>) -> Void)
 }
 
@@ -144,6 +149,23 @@ class MediquoHostApiSetup {
   /// Sets up an instance of `MediquoHostApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: MediquoHostApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Whether the native SDK can run on this device.
+    ///
+    /// Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+    /// for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices.
+    let isSupportedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.isSupported\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      isSupportedChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.isSupported()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      isSupportedChannel.setMessageHandler(nil)
+    }
     /// Initialises the native MediQuo SDK with the partner [apiKey].
     let initializeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.initialize\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
@@ -235,9 +257,9 @@ class MediquoHostApiSetup {
     ///
     /// [payload] is the notification data (for example
     /// `RemoteMessage.data`). On iOS this routes to the deep-linked screen via
-    /// `getSDKViewController(forRemotePush:)`; on Android, where the bundled
-    /// messaging service already deep-links taps, it falls back to the
-    /// professional list.
+    /// `getSDKViewController(forRemotePush:)`; on Android a `room_id` opens that
+    /// chat, `call_*` keys open the call screen and anything else falls back to
+    /// the professional list.
     let openFromRemoteNotificationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.mediquo_flutter.MediquoHostApi.openFromRemoteNotification\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       openFromRemoteNotificationChannel.setMessageHandler { message, reply in

@@ -28,7 +28,8 @@ It fetches the full guide ([`AI_INTEGRATION.md`](AI_INTEGRATION.md)), asks for y
 `apiKey` and `clientCode`, and writes the integration for you. Prefer doing it by
 hand? Everything's below. 👇
 
-- 🩺 Native Android & iOS MediQuo SDKs (native UI, native video stack).
+- 🩺 Native Android & iOS MediQuo SDKs (native UI, native video stack), on the
+  26.x generation for both.
 - 🍎 iOS integrates via **CocoaPods or Swift Package Manager** (no Flutter SPM required).
 - 🧩 Type-safe platform channel generated with [Pigeon](https://pub.dev/packages/pigeon).
 - 🟦 Plain-Dart API (`Future`s).
@@ -77,7 +78,7 @@ JWT access token.
 
 ```yaml
 dependencies:
-  mediquo_flutter: ^1.0.0
+  mediquo_flutter: ^2.0.0
 ```
 
 ```sh
@@ -90,9 +91,13 @@ flutter pub get
 | --- | --- |
 | Dart | 3.12 |
 | Flutter | 3.44 |
-| Android | `minSdk` 29, `compileSdk` 35, JDK 17, Kotlin 2.2 |
+| Android | `minSdk` 29, `compileSdk` 37, JDK 17, Kotlin 2.4, AGP 9.1, `arm64-v8a` devices |
 | iOS | iOS 17, Xcode 26 |
-| MediQuo SDK | Android `3.8.1` · iOS `26.1.2` |
+| MediQuo SDK | Android `26.8.1` · iOS `26.1.2` |
+
+> **Upgrading from 1.x?** The Dart API is unchanged, but Android needs the new
+> toolchain, the push and `FileProvider` changes below, and an
+> `isSupported()` check. See the [CHANGELOG](CHANGELOG.md#200).
 
 ## Platform setup
 
@@ -121,49 +126,76 @@ self-contained AAR. Modern Flutter projects resolve repositories centrally
    }
    ```
 
-2. **SDK version.** The plugin pins `com.mediquo:mediquo-sdk` to `3.8.1` by
-   default. Override it only to use a different version published by MediQuo:
+2. **SDK version.** The plugin pins `com.mediquo:mediquo-sdk` to `26.8.1` by
+   default. Override it only to use a different 26.x version published by
+   MediQuo, and delete any `mediquo.sdkVersion=3.8.1` left over from 1.x:
 
    ```properties
    # android/gradle.properties
-   mediquo.sdkVersion=3.8.1
+   mediquo.sdkVersion=26.8.1
    ```
 
-3. **Toolchain.** The SDK is compiled with Kotlin 2.2, so that is the only hard
-   plugin requirement:
+3. **Toolchain.** The 26.x AAR declares `minCompileSdk=37` and is compiled with
+   Kotlin 2.4:
 
    | Tool | Version |
    | --- | --- |
-   | Kotlin (`org.jetbrains.kotlin.android`) | `2.2.0` |
-   | JDK | 17 |
-   | `compileSdk` | 35 or newer |
+   | `compileSdk` | 37 (`targetSdk` can stay lower) |
    | `minSdk` | 29 |
+   | Kotlin (`org.jetbrains.kotlin.android`) | 2.4.0 |
+   | Android Gradle Plugin | 9.1.1 |
+   | Gradle | 9.3.1 |
+   | JDK | 17 |
 
-   You do **not** need Hilt, KSP or the Compose Gradle plugin, and you must
-   **not** add a Compose BOM. The AAR is self-contained, and this plugin already
-   supplies the Compose BOM via `api platform(...)`. (Applying the Compose plugin
-   in an app that has no Compose code fails with
-   `IncompatibleComposeRuntimeVersionException`.)
+   These are the versions the example app is built and released with; older
+   combinations are untested. You do **not** need Hilt, KSP, the Compose Gradle
+   plugin or a Compose BOM: the SDK brings its own Compose and Firebase BOMs.
 
-4. **Permissions.** Add `CAMERA` and `RECORD_AUDIO` (video calls) and, for push,
-   `POST_NOTIFICATIONS` (Android 13+) to your `AndroidManifest.xml`. The
-   [MediQuo Android SDK docs](https://documentacao.mediquo.com.br/sdk-android.html)
-   cover the attachment `FileProvider` and the colour/font customisation keys.
+4. **Device support.** The SDK ships its native libraries (about 200 MB
+   uncompressed, ~140 MB in the APK) for **`arm64-v8a` only**. On 32-bit ARM and
+   x86 devices `Mediquo.isSupported()` returns `false` and every other call
+   throws `MediquoUnsupportedDeviceException`, so check it before showing the
+   feature. Ship an App Bundle so arm64 devices download only their ABI, or set
+   `ndk { abiFilters += "arm64-v8a" }` if your app targets arm64 only.
 
-   R8/ProGuard rules for the MediQuo SDK's transitive dependencies (the
-   OpenTok/WebRTC video stack plus MediaPipe, Protobuf, gRPC, Jackson and OSGi)
-   are **bundled** with the plugin (`android/consumer-rules.pro`) and applied
-   automatically via `consumerProguardFiles`, so a `minifyEnabled` release build
-   needs no MediQuo-specific ProGuard setup. (As with any minified Flutter app you
-   may still need Flutter's own `-dontwarn com.google.android.play.core.**` for
-   deferred components, a Flutter concern, not a MediQuo one.)
+5. **Permissions.** The SDK declares `INTERNET`, `ACCESS_NETWORK_STATE`,
+   `WAKE_LOCK` and `POST_NOTIFICATIONS`. Your app declares the rest:
 
-> Verified at **build** time against `com.mediquo:mediquo-sdk:3.8.1`: a real
-> consumer app compiles with only the above (no Compose/Hilt/KSP plugins) and a
-> **release** build (R8 / `minifyEnabled`) succeeds with the bundled rules.
-> Confirm the SDK UI launches at runtime. If a future SDK build ever reports a
-> Hilt/Dagger error, apply the Hilt + KSP plugins and make your `Application`
-> `@HiltAndroidApp`. Not needed today.
+   ```xml
+   <uses-permission android:name="android.permission.CAMERA" />
+   <uses-permission android:name="android.permission.RECORD_AUDIO" />
+   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+   <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+   <uses-feature
+       android:name="android.hardware.camera"
+       android:required="false" />
+   ```
+
+   The SDK asks for the camera itself and picks documents with the system
+   picker, so no storage permission is needed.
+
+6. **Attachments (`FileProvider`).** The SDK shares camera captures,
+   attachments and downloaded PDFs through
+   `FileProvider.getUriForFile(context, packageName, file)` but does not declare
+   a provider. The plugin declares one for you
+   (`MediquoFlutterFileProvider`, authority `${applicationId}`, covering
+   `cacheDir` and `getExternalFilesDir("Download")`). Do **not** declare another
+   provider on `${applicationId}` in your app (use a suffix such as
+   `${applicationId}.fileprovider` for your own), and drop the
+   `res/xml/file_paths.xml` MediQuo's docs ask for: it is not needed.
+
+R8/ProGuard rules for the SDK ship with the SDK itself (`proguard.txt`), and the
+plugin adds `-dontwarn` rules for a few optional transitive dependencies
+(`android/consumer-rules.pro`), so a `minifyEnabled` release build needs no
+MediQuo-specific setup. (As with any minified Flutter app you may still need
+Flutter's own `-dontwarn com.google.android.play.core.**` for deferred
+components, a Flutter concern, not a MediQuo one.)
+
+> Verified with `com.mediquo:mediquo-sdk:26.8.1`: the example app builds in
+> debug and release (R8 with resource shrinking) on Flutter 3.47.5, AGP 9.1.1,
+> Gradle 9.3.1 and Kotlin 2.4.0, alongside `firebase_messaging` (Firebase BOM
+> 34). The plugin adds a version constraint for the SDK's
+> `firebase-analytics-ktx`, which newer Firebase BOMs no longer list.
 
 ### iOS
 
@@ -230,10 +262,9 @@ End-to-end flow:
    iOS.
 2. Your app calls `mediquo.registerPushToken(token)` once the patient is
    authenticated.
-3. The plugin calls the native `registerPushToken`.
-4. The MediQuo backend delivers pushes; MediQuo renders them natively (Android
-   via the bundled `MediquoFirebaseMessagingService`, iOS via your notification
-   delegate plus `getSDKViewController(forRemotePush:)`).
+3. The plugin calls the native `setPushNotificationToken`.
+4. The MediQuo backend delivers pushes. On iOS your notification delegate shows
+   them; on Android see [Android: who receives FCM](#android-who-receives-fcm).
 
 > **Who provides what.** The per-device token is obtained and registered by your
 > **app** (the backend can't; only the device can mint it). The Firebase
@@ -254,9 +285,12 @@ if (apnsToken != null) {
 }
 ```
 
-Open the right screen when a notification is **tapped** (iOS routes via
-`getSDKViewController(forRemotePush:)`; Android deep-links taps natively and
-falls back to the professional list):
+Open the right screen when a notification is **tapped**. iOS routes via
+`getSDKViewController(forRemotePush:)`. Android reads the payload: a `room_id`
+opens that chat, an incoming-call payload (`type: call_requested` with
+`call_uuid`, `call_room_id`, `call_session_id`, `call_type`, `call_token`,
+`professional_hash`, `professional_name`, `image`) opens the call screen, and
+anything else opens the professional list:
 
 ```dart
 // e.g. from firebase_messaging's onMessageOpenedApp / getInitialMessage:
@@ -266,10 +300,29 @@ await mediquo.openFromNotification(message.data);
 The [`example/`](example/) app shows the full wiring (permission request,
 `getToken`, `onTokenRefresh`).
 
-> **Android caveat.** FCM delivers messages to a single `FirebaseMessagingService`.
-> If your app also consumes its own FCM messages, consolidate them into one
-> custom service that forwards MediQuo payloads to the SDK via
-> `MediquoSDK.getInstance()?.onFirebaseMessageReceived(remoteMessage)` (native).
+### Android: who receives FCM
+
+Android delivers FCM messages to a single `FirebaseMessagingService`. The 26.x
+SDK registers its own, `com.mediquo.ui.firebase.MediQuoFirebaseService`, which
+posts a notification that opens your launcher activity with the payload as
+intent extras. If your app also receives FCM through `firebase_messaging` or
+OneSignal, the two services compete and one of them silently loses. In that
+case remove the SDK's service:
+
+```xml
+<manifest xmlns:tools="http://schemas.android.com/tools" ...>
+  <application ...>
+    <service
+        android:name="com.mediquo.ui.firebase.MediQuoFirebaseService"
+        tools:node="remove" />
+  </application>
+</manifest>
+```
+
+and let your own push stack show MediQuo notifications, forwarding the tapped
+message's data to `mediquo.openFromNotification(message.data)`. Incoming calls
+also arrive over the SDK's socket while a session is open: the plugin opens the
+call screen and closes it if the professional cancels.
 
 ## Public API
 
@@ -277,6 +330,7 @@ The [`example/`](example/) app shows the full wiring (permission request,
 
 | Method | Purpose |
 | --- | --- |
+| `isSupported()` | whether this device can run the SDK (`Future<bool>`) |
 | `initialize(apiKey)` | initialise the SDK |
 | `authenticate(clientCode)` | authenticate the patient |
 | `startSession(configuration)` | initialise **then** authenticate |
@@ -285,8 +339,8 @@ The [`example/`](example/) app shows the full wiring (permission request,
 | `registerPushToken(token)` | register a push token |
 | `logout()` | log the patient out |
 
-Every method returns `Future<void>` and throws a `MediquoException` on failure.
-The package holds no observable state; model the lifecycle in your own state
+Every other method returns `Future<void>` and throws a `MediquoException` on
+failure. The package holds no observable state; model the lifecycle in your own state
 management.
 
 ### Push tokens
@@ -300,7 +354,7 @@ Failures are thrown as the sealed `MediquoException` hierarchy
 (`MediquoInitializationException`, `MediquoAuthenticationException`,
 `MediquoOpenException`, `MediquoDeauthenticationException`,
 `MediquoPushRegistrationException`, `MediquoNotInitializedException`,
-`MediquoPlatformException`).
+`MediquoUnsupportedDeviceException`, `MediquoPlatformException`).
 
 ## Testing
 

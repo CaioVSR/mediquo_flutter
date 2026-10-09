@@ -27,9 +27,18 @@ class Mediquo {
 
   final MediquoFlutterPlatform _platform;
 
+  /// Whether the native SDK can run on this device.
+  ///
+  /// Always `true` on iOS. On Android the MediQuo SDK ships native libraries
+  /// for `arm64-v8a` only, so this is `false` on 32-bit and x86 devices, where
+  /// every other method throws a `MediquoUnsupportedDeviceException`. Use it to
+  /// hide the feature instead of letting the user hit that error.
+  Future<bool> isSupported() => _platform.isSupported();
+
   /// Initialises the native SDK with the partner [apiKey].
   ///
-  /// Throws a `MediquoInitializationException` on failure.
+  /// Throws a `MediquoInitializationException` on failure, or a
+  /// `MediquoUnsupportedDeviceException` on a device that cannot run the SDK.
   Future<void> initialize(String apiKey) => _platform.initialize(apiKey);
 
   /// Authenticates the pre-registered patient identified by [clientCode] (CPF).

@@ -25,6 +25,8 @@ void main() {
             'Failed to register the push token.',
         MediquoNotInitializedException.new:
             'The MediQuo SDK is not ready for this operation yet.',
+        MediquoUnsupportedDeviceException.new:
+            'This device cannot run the MediQuo SDK.',
       };
 
       for (final entry in defaults.entries) {
@@ -75,6 +77,12 @@ void main() {
       test('maps the not initialized code', () {
         expectMapping<MediquoNotInitializedException>(
           MediquoErrorCode.notInitialized,
+        );
+      });
+
+      test('maps the unsupported device code', () {
+        expectMapping<MediquoUnsupportedDeviceException>(
+          MediquoErrorCode.unsupportedDevice,
         );
       });
 

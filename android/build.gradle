@@ -1,5 +1,5 @@
 group = "com.mediquo.mediquo_flutter"
-version = "1.0"
+version = "2.0"
 
 buildscript {
     repositories {
@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:8.7.0"
+        classpath "com.android.tools.build:gradle:9.1.1"
     }
 }
 
@@ -23,7 +23,8 @@ apply plugin: "com.android.library"
 
 android {
     namespace = "com.mediquo.mediquo_flutter"
-    compileSdk = 35
+    // The MediQuo 26.x AAR declares minCompileSdk=37.
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -42,14 +43,20 @@ kotlin {
     }
 }
 
-def mediquoSdkVersion = project.findProperty("mediquo.sdkVersion") ?: "3.8.1"
-def firebaseMessagingVersion =
-        project.findProperty("mediquo.firebaseMessagingVersion") ?: "24.1.0"
-def composeBomVersion =
-        project.findProperty("mediquo.composeBomVersion") ?: "2025.04.00"
+def mediquoSdkVersion = project.findProperty("mediquo.sdkVersion") ?: "26.8.1"
 
 dependencies {
-    api platform("androidx.compose:compose-bom:$composeBomVersion")
     implementation "com.mediquo:mediquo-sdk:$mediquoSdkVersion"
-    implementation "com.google.firebase:firebase-messaging:$firebaseMessagingVersion"
+    // The SDK's POM only exposes these at runtime scope; the bridge compiles
+    // against them directly.
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
+    implementation "androidx.core:core-ktx:1.17.0"
+
+    constraints {
+        // The SDK declares firebase-analytics-ktx without a version and relies on
+        // firebase-bom 33.x. When the app resolves a newer firebase-bom (34.x,
+        // e.g. via firebase_core 4.x), that BOM no longer lists the -ktx modules
+        // and the dependency cannot be resolved; this pins the last release.
+        implementation "com.google.firebase:firebase-analytics-ktx:22.4.0"
+    }
 }

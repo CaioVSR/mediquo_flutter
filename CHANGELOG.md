@@ -4,6 +4,59 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0
+
+Android moves from the legacy `com.mediquo:mediquo-sdk` 3.8.1 to the rewritten
+26.x SDK (`com.mediquo.sdk.MediQuo`, default 26.8.1). The Dart API stays
+source-compatible with 1.x; the breaking changes are the host-app requirements
+below. iOS is unchanged (MediQuoSDK 26.1.2).
+
+### Breaking
+
+- **Android toolchain.** The 26.x AAR requires `compileSdk` 37 and is built
+  with Kotlin 2.4. Tested with AGP 9.1.1, Gradle 9.3.1, Kotlin 2.4.0 and JDK 17;
+  `minSdk` stays 29.
+- **arm64-v8a only.** The SDK ships its native libraries (~200 MB uncompressed)
+  for `arm64-v8a` only. On other ABIs every call now fails with
+  `MediquoUnsupportedDeviceException`; check `Mediquo.isSupported()` first.
+- **New `MediquoException` subtype.** `MediquoUnsupportedDeviceException`
+  (code `unsupported_device`) joins the sealed hierarchy, so exhaustive
+  `switch`es over `MediquoException` need a new case.
+- **Push service.** The plugin no longer declares
+  `com.mediquo.chat.fcm.MediquoFirebaseMessagingService`. The 26.x SDK registers
+  its own `com.mediquo.ui.firebase.MediQuoFirebaseService`; apps that receive
+  FCM through `firebase_messaging` or OneSignal should remove it with
+  `tools:node="remove"` and forward MediQuo payloads to `openFromNotification`.
+- **FileProvider authority.** The plugin now declares a `FileProvider` on
+  `${applicationId}` (the authority the SDK uses for attachments). Host apps
+  must not declare another provider on that authority, and no longer need their
+  own `file_paths.xml` for MediQuo.
+- **Gradle properties.** `mediquo.composeBomVersion` and
+  `mediquo.firebaseMessagingVersion` are gone (the SDK brings its own BOMs). An
+  app that still sets `mediquo.sdkVersion=3.8.1` must remove it.
+- `registerPushToken` with an APNs token on Android now fails with
+  `MediquoPushRegistrationException` instead of being sent as FCM.
+
+### Added
+
+- `Mediquo.isSupported()` (Dart, Pigeon and both platforms): `true` on iOS; on
+  Android, `true` only when the device supports `arm64-v8a`.
+- Android `openFromNotification` routes `room_id` payloads to that chat and
+  incoming-call payloads (`type: call_requested` with `call_*` keys) to the call
+  screen; anything else opens the professional list.
+- Android incoming calls: the plugin listens to the SDK's event delegate, opens
+  the call screen when a call arrives over the socket and closes it when the
+  call is rejected.
+
+### Changed
+
+- Android bridge rewritten on the coroutine-based `MediQuo` API, mirroring the
+  iOS bridge and keeping the same error codes.
+- `consumer-rules.pro` drops the OpenTok/WebRTC keep rules, now shipped by the
+  SDK's own `proguard.txt`.
+- The podspec version now matches the package (was `1.0.0`), and
+  `Package.swift` pins MediQuoSDK to exactly `26.1.2`, like the podspec.
+
 ## 1.0.3
 
 ### Changed

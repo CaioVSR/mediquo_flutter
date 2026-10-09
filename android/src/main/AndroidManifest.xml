@@ -4,13 +4,20 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
-        <service
-            android:name="com.mediquo.chat.fcm.MediquoFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+        <!-- The MediQuo SDK shares attachments through
+             FileProvider.getUriForFile(context, packageName, file) but does not
+             declare a provider itself, so the plugin supplies one on that
+             authority. Host apps must not declare another provider on
+             ${applicationId}. -->
+        <provider
+            android:name="com.mediquo.mediquo_flutter.MediquoFlutterFileProvider"
+            android:authorities="${applicationId}"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/mediquo_flutter_file_paths" />
+        </provider>
     </application>
 
 </manifest>
